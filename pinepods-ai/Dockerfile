@@ -9,9 +9,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+ENV UV_PYTHON_DOWNLOADS=0
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY .python-version pyproject.toml uv.lock ./
+RUN --mount=from=ghcr.io/astral-sh/uv:0.13.6,source=/uv,target=/bin/uv \
+    uv sync --locked --no-cache
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY main.py .
 

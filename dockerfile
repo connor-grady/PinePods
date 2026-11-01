@@ -33,17 +33,20 @@ RUN RUSTFLAGS="--cfg=web_sys_unstable_apis --cfg getrandom_backend=\"wasm_js\"" 
 # Python builder stage for database setup
 FROM python:3.14-alpine AS python-builder
 WORKDIR /build
+ENV UV_PYTHON_DOWNLOADS=0
 
 # Install build dependencies for PyInstaller and MariaDB connector
 RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev mariadb-connector-c-dev
 
+# Install Python dependencies including PyInstaller
+COPY ./.python-version ./pyproject.toml ./uv.lock ./
+RUN --mount=from=ghcr.io/astral-sh/uv:0.13.6,source=/uv,target=/bin/uv \
+    uv sync --locked --no-cache --extra mariadb --group build
+ENV PATH="/build/.venv/bin:$PATH"
+
 # Copy Python source files
 COPY ./database_functions ./database_functions
 COPY ./startup/setup_database_new.py ./startup/setup_database_new.py
-COPY ./requirements.txt ./requirements.txt
-
-# Install Python dependencies including PyInstaller
-RUN pip install --no-cache-dir -r requirements.txt pyinstaller
 
 # Build standalone database setup binary
 RUN pyinstaller --onefile \

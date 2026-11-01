@@ -79,18 +79,17 @@ jobs:
         with:
           workspaces: rust-api
 
-      - name: Set up Python (schema migrations)
-        uses: actions/setup-python@v7
+      - name: Set up uv (schema migrations)
+        uses: astral-sh/setup-uv@v10
         with:
-          python-version: "3.12"
+          version: "0.13.6"
 
       - name: Install migration dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -qy libmariadb-dev
-          python -m pip install -q -r rust-api/tests/requirements.txt
           # Production runs migrations with the mariadb connector; use it here too.
-          python -m pip install -q mariadb
+          uv sync --locked --extra mariadb
 
       - name: Unit tests
         working-directory: rust-api
@@ -100,5 +99,5 @@ jobs:
         working-directory: rust-api
         env:
           PINEPODS_TEST_EXTERNAL_SERVICES: "1"
-          PINEPODS_TEST_PYTHON: python
+          PINEPODS_TEST_PYTHON: ${{ github.workspace }}/.venv/bin/python
         run: scripts/integration-tests.sh --db ${{ matrix.db }}
